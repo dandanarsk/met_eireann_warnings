@@ -1,0 +1,11 @@
+{
+  "domain": "met_eireann_warnings",
+  "name": "Met Éireann Weather Warnings",
+  "version": "1.0.0",
+  "documentation": "https://github.com/example/met_eireann_warnings",
+  "dependencies": [],
+  "codeowners": [],
+  "requirements": [],
+  "config_flow": true,
+  "integration_type": "service"
+}
