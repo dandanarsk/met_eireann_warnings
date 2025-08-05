@@ -9,6 +9,8 @@
   "requirements": [],
   "config_flow": true,
   "integration_type": "service"
-
+  "iot_class": "cloud_polling",
+  "icon": "icon
 }
+
 
