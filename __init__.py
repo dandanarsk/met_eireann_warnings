@@ -1,3 +1,4 @@
+"""Met Éireann Weather Warnings integration."""
 from __future__ import annotations
 
 import asyncio
@@ -24,7 +25,17 @@ UPDATE_INTERVAL = timedelta(minutes=10)
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Met Éireann Weather Warnings from a config entry."""
-    coordinator = MetEireannDataUpdateCoordinator(hass)
+    # Get polling interval from config entry, default to 30 minutes
+    polling_interval = entry.data.get("polling_interval", 30)
+    
+    coordinator = MetEireannDataUpdateCoordinator(hass, polling_interval)
+    
+    # Set area configuration
+    coordinator.area_config = {
+        "area_type": entry.data.get("area_type", "whole_ireland"),
+        "selected_regions": entry.data.get("selected_regions", []),
+        "selected_counties": entry.data.get("selected_counties", [])
+    }
     
     await coordinator.async_config_entry_first_refresh()
 
@@ -48,14 +59,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 class MetEireannDataUpdateCoordinator(DataUpdateCoordinator):
     """Class to manage fetching Met Éireann weather warnings data."""
 
-    def __init__(self, hass: HomeAssistant) -> None:
+    def __init__(self, hass: HomeAssistant, polling_interval: int = 30) -> None:
         """Initialize."""
         self.hass = hass
+        self.area_config = {}  # Will be set by async_setup_entry
+        # Convert minutes to timedelta
+        update_interval = timedelta(minutes=polling_interval)
+        
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=UPDATE_INTERVAL,
+            update_interval=update_interval,
         )
 
     async def _async_update_data(self) -> dict[str, Any]:
@@ -108,30 +123,75 @@ class MetEireannDataUpdateCoordinator(DataUpdateCoordinator):
                 "status": properties.get("status", "").lower()
             }
             
-            processed_data["warnings"].append(warning)
-            
-            # Track active warnings
-            if warning["status"] in ["actual", "active"]:
-                processed_data["active_warnings_count"] += 1
+            # Filter warnings based on area configuration
+            if self._should_include_warning(warning):
+                processed_data["warnings"].append(warning)
                 
-                # Track warning types and regions
-                if warning["type"]:
-                    processed_data["warning_types"].add(warning["type"])
-                if warning["regions"]:
-                    processed_data["regions_affected"].update(warning["regions"])
-                
-                # Track highest warning level
-                level = warning.get("level", "").lower()
-                if level in ["red", "orange", "yellow"]:
-                    if processed_data["highest_warning_level"] is None:
-                        processed_data["highest_warning_level"] = level
-                    elif level == "red":
-                        processed_data["highest_warning_level"] = "red"
-                    elif level == "orange" and processed_data["highest_warning_level"] != "red":
-                        processed_data["highest_warning_level"] = "orange"
+                # Track active warnings
+                if warning["status"] in ["actual", "active"]:
+                    processed_data["active_warnings_count"] += 1
+                    
+                    # Track warning types and regions
+                    if warning["type"]:
+                        processed_data["warning_types"].add(warning["type"])
+                    if warning["regions"]:
+                        processed_data["regions_affected"].update(warning["regions"])
+                    
+                    # Track highest warning level
+                    level = warning.get("level", "").lower()
+                    if level in ["red", "orange", "yellow"]:
+                        if processed_data["highest_warning_level"] is None:
+                            processed_data["highest_warning_level"] = level
+                        elif level == "red":
+                            processed_data["highest_warning_level"] = "red"
+                        elif level == "orange" and processed_data["highest_warning_level"] != "red":
+                            processed_data["highest_warning_level"] = "orange"
 
         # Convert sets to lists for JSON serialization
         processed_data["warning_types"] = list(processed_data["warning_types"])
         processed_data["regions_affected"] = list(processed_data["regions_affected"])
         
         return processed_data
+
+    def _should_include_warning(self, warning: dict) -> bool:
+        """Check if warning should be included based on area configuration."""
+        area_config = getattr(self, 'area_config', {})
+        area_type = area_config.get("area_type", "whole_ireland")
+        
+        if area_type == "whole_ireland":
+            return True
+            
+        warning_regions = [region.lower().strip() for region in warning.get("regions", [])]
+        
+        if area_type == "regions":
+            selected_regions = area_config.get("selected_regions", [])
+            
+            # Check if any of the warning regions match selected regions
+            for region in warning_regions:
+                # Check if region matches directly
+                if region in selected_regions:
+                    return True
+                    
+                # Check if any counties from selected regions are mentioned
+                from .const import REGION_TO_COUNTIES, COUNTIES
+                for selected_region in selected_regions:
+                    region_counties = REGION_TO_COUNTIES.get(selected_region, [])
+                    for county in region_counties:
+                        county_name = COUNTIES.get(county, county).lower()
+                        if county_name in region or county in region:
+                            return True
+            return False
+            
+        elif area_type == "counties":
+            selected_counties = area_config.get("selected_counties", [])
+            
+            # Check if any of the warning regions match selected counties
+            for region in warning_regions:
+                for county in selected_counties:
+                    from .const import COUNTIES
+                    county_name = COUNTIES.get(county, county).lower()
+                    if county_name in region or county in region:
+                        return True
+            return False
+            
+        return True
