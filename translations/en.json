@@ -1,1 +1,56 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Met Éireann Weather Warnings",
+        "description": "Configure polling interval for weather warnings.",
+        "data": {
+          "polling_interval": "Polling interval (minutes)"
+        },
+        "data_description": {
+          "polling_interval": "How often to check for new weather warnings (10-120 minutes)"
+        }
+      },
+      "area": {
+        "title": "Select Coverage Area",
+        "description": "Choose which areas you want to receive warnings for.",
+        "data": {
+          "area_type": "Coverage type"
+        },
+        "data_description": {
+          "area_type": "Select whether to monitor all of Ireland, specific regions, or individual counties"
+        }
+      },
+      "regions": {
+        "title": "Select Regions",
+        "description": "Choose which regions to monitor for weather warnings.",
+        "data": {
+          "selected_regions": "Regions to monitor"
+        },
+        "data_description": {
+          "selected_regions": "Select one or more regions to receive warnings for"
+        }
+      },
+      "counties": {
+        "title": "Select Counties",
+        "description": "Choose which counties to monitor for weather warnings.",
+        "data": {
+          "selected_counties": "Counties to monitor"
+        },
+        "data_description": {
+          "selected_counties": "Select one or more counties to receive warnings for"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to Met Éireann API",
+      "unknown": "Unexpected error occurred",
+      "selected_regions": "Please select at least one region",
+      "selected_counties": "Please select at least one county"
+    },
+    "abort": {
+      "already_configured": "Integration is already configured"
+    }
+  }
+}
 
