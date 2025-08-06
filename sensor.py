@@ -39,11 +39,37 @@ class MetEireannWarningsCountSensor(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator: MetEireannDataUpdateCoordinator) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
-        self._attr_name = "Met Éireann Active Warnings Count"
-        self._attr_unique_id = f"{DOMAIN}_active_warnings_count"
+        
+        # Generate descriptive names based on area configuration
+        area_suffix = self._get_area_suffix()
+        self._attr_name = f"Met Éireann Active Warnings Count{area_suffix}"
+        self._attr_unique_id = f"{DOMAIN}_active_warnings_count{area_suffix.lower().replace(' ', '_')}"
         self._attr_icon = "mdi:weather-cloudy-alert"
         self._attr_device_class = SensorDeviceClass.ENUM
         self._attr_state_class = SensorStateClass.MEASUREMENT
+
+    def _get_area_suffix(self) -> str:
+        """Get area suffix for sensor name."""
+        area_config = getattr(self.coordinator, 'area_config', {})
+        area_type = area_config.get("area_type", "whole_ireland")
+        
+        if area_type == "whole_ireland":
+            return " (Ireland)"
+        elif area_type == "regions":
+            regions = area_config.get("selected_regions", [])
+            if len(regions) == 1:
+                from .const import REGIONS
+                return f" ({REGIONS.get(regions[0], regions[0]).title()})"
+            else:
+                return f" ({len(regions)} Regions)"
+        elif area_type == "counties":
+            counties = area_config.get("selected_counties", [])
+            if len(counties) == 1:
+                from .const import COUNTIES
+                return f" ({COUNTIES.get(counties[0], counties[0]).title()})"
+            else:
+                return f" ({len(counties)} Counties)"
+        return ""
 
     @property
     def native_value(self) -> int:
@@ -54,11 +80,22 @@ class MetEireannWarningsCountSensor(CoordinatorEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional state attributes."""
         data = self.coordinator.data
-        return {
+        area_config = getattr(self.coordinator, 'area_config', {})
+        
+        attributes = {
             "warning_types": data.get("warning_types", []),
             "regions_affected": data.get("regions_affected", []),
             "last_updated": datetime.now().isoformat(),
+            "area_type": area_config.get("area_type", "whole_ireland"),
         }
+        
+        # Add configured areas to attributes
+        if area_config.get("area_type") == "regions":
+            attributes["monitored_regions"] = area_config.get("selected_regions", [])
+        elif area_config.get("area_type") == "counties":
+            attributes["monitored_counties"] = area_config.get("selected_counties", [])
+            
+        return attributes
 
 
 class MetEireannHighestLevelSensor(CoordinatorEntity, SensorEntity):
@@ -67,8 +104,34 @@ class MetEireannHighestLevelSensor(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator: MetEireannDataUpdateCoordinator) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
-        self._attr_name = "Met Éireann Highest Warning Level"
-        self._attr_unique_id = f"{DOMAIN}_highest_warning_level"
+        
+        # Generate descriptive names based on area configuration
+        area_suffix = self._get_area_suffix()
+        self._attr_name = f"Met Éireann Highest Warning Level{area_suffix}"
+        self._attr_unique_id = f"{DOMAIN}_highest_warning_level{area_suffix.lower().replace(' ', '_')}"
+
+    def _get_area_suffix(self) -> str:
+        """Get area suffix for sensor name."""
+        area_config = getattr(self.coordinator, 'area_config', {})
+        area_type = area_config.get("area_type", "whole_ireland")
+        
+        if area_type == "whole_ireland":
+            return " (Ireland)"
+        elif area_type == "regions":
+            regions = area_config.get("selected_regions", [])
+            if len(regions) == 1:
+                from .const import REGIONS
+                return f" ({REGIONS.get(regions[0], regions[0]).title()})"
+            else:
+                return f" ({len(regions)} Regions)"
+        elif area_type == "counties":
+            counties = area_config.get("selected_counties", [])
+            if len(counties) == 1:
+                from .const import COUNTIES
+                return f" ({COUNTIES.get(counties[0], counties[0]).title()})"
+            else:
+                return f" ({len(counties)} Counties)"
+        return ""
 
     @property
     def native_value(self) -> str | None:
@@ -88,9 +151,12 @@ class MetEireannHighestLevelSensor(CoordinatorEntity, SensorEntity):
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional state attributes."""
         level = self.coordinator.data.get("highest_warning_level")
+        area_config = getattr(self.coordinator, 'area_config', {})
+        
         attributes = {
             "active_warnings_count": self.coordinator.data.get("active_warnings_count", 0),
             "last_updated": datetime.now().isoformat(),
+            "area_type": area_config.get("area_type", "whole_ireland"),
         }
         
         if level and level in WARNING_LEVELS:
@@ -98,6 +164,12 @@ class MetEireannHighestLevelSensor(CoordinatorEntity, SensorEntity):
                 "color": WARNING_LEVELS[level]["color"],
                 "priority": WARNING_LEVELS[level]["priority"]
             })
+        
+        # Add configured areas to attributes
+        if area_config.get("area_type") == "regions":
+            attributes["monitored_regions"] = area_config.get("selected_regions", [])
+        elif area_config.get("area_type") == "counties":
+            attributes["monitored_counties"] = area_config.get("selected_counties", [])
         
         return attributes
 
@@ -108,9 +180,35 @@ class MetEireannActiveWarningsSensor(CoordinatorEntity, SensorEntity):
     def __init__(self, coordinator: MetEireannDataUpdateCoordinator) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
-        self._attr_name = "Met Éireann Active Warnings"
-        self._attr_unique_id = f"{DOMAIN}_active_warnings"
+        
+        # Generate descriptive names based on area configuration
+        area_suffix = self._get_area_suffix()
+        self._attr_name = f"Met Éireann Active Warnings{area_suffix}"
+        self._attr_unique_id = f"{DOMAIN}_active_warnings{area_suffix.lower().replace(' ', '_')}"
         self._attr_icon = "mdi:format-list-bulleted"
+
+    def _get_area_suffix(self) -> str:
+        """Get area suffix for sensor name."""
+        area_config = getattr(self.coordinator, 'area_config', {})
+        area_type = area_config.get("area_type", "whole_ireland")
+        
+        if area_type == "whole_ireland":
+            return " (Ireland)"
+        elif area_type == "regions":
+            regions = area_config.get("selected_regions", [])
+            if len(regions) == 1:
+                from .const import REGIONS
+                return f" ({REGIONS.get(regions[0], regions[0]).title()})"
+            else:
+                return f" ({len(regions)} Regions)"
+        elif area_type == "counties":
+            counties = area_config.get("selected_counties", [])
+            if len(counties) == 1:
+                from .const import COUNTIES
+                return f" ({COUNTIES.get(counties[0], counties[0]).title()})"
+            else:
+                return f" ({len(counties)} Counties)"
+        return ""
 
     @property
     def native_value(self) -> str:
@@ -132,14 +230,23 @@ class MetEireannActiveWarningsSensor(CoordinatorEntity, SensorEntity):
             if warning.get("status", "").lower() in ["actual", "active"]
         ]
         
+        area_config = getattr(self.coordinator, 'area_config', {})
+        
         attributes = {
             "active_warnings_count": len(active_warnings),
             "total_warnings": len(warnings),
             "warning_types": self.coordinator.data.get("warning_types", []),
             "regions_affected": self.coordinator.data.get("regions_affected", []),
             "last_updated": datetime.now().isoformat(),
+            "area_type": area_config.get("area_type", "whole_ireland"),
             "warnings": []
         }
+        
+        # Add configured areas to attributes
+        if area_config.get("area_type") == "regions":
+            attributes["monitored_regions"] = area_config.get("selected_regions", [])
+        elif area_config.get("area_type") == "counties":
+            attributes["monitored_counties"] = area_config.get("selected_counties", [])
         
         # Add detailed warning information
         for warning in active_warnings:
