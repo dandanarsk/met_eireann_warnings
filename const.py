@@ -80,3 +80,34 @@ REGION_TO_COUNTIES = {
     "munster": ["cork", "kerry", "limerick", "tipperary", "waterford", "clare"],
     "ulster": ["cavan", "donegal", "monaghan"]
 }
+
+# Met Éireann region codes to county mapping
+# Based on the actual API region codes
+REGION_CODES = {
+    "EI01": "carlow",
+    "EI02": "cavan", 
+    "EI03": "clare",
+    "EI04": "cork",
+    "EI06": "donegal",
+    "EI07": "dublin",
+    "EI10": "galway",
+    "EI11": "kerry",
+    "EI12": "kildare",
+    "EI13": "kilkenny",
+    "EI14": "leitrim",
+    "EI15": "laois",
+    "EI16": "limerick",
+    "EI18": "longford",
+    "EI19": "louth",
+    "EI20": "mayo",
+    "EI21": "meath",
+    "EI22": "monaghan",
+    "EI23": "offaly",
+    "EI24": "roscommon",
+    "EI25": "sligo",
+    "EI26": "tipperary",
+    "EI27": "waterford",
+    "EI29": "westmeath",
+    "EI30": "wexford",
+    "EI31": "wicklow"
+}
