@@ -101,34 +101,39 @@ class MetEireannDataUpdateCoordinator(DataUpdateCoordinator):
             "regions_affected": set()
         }
 
-        if not data or "features" not in data:
+        # Handle case where data is None or empty
+        if not data:
             return processed_data
 
-        for feature in data["features"]:
-            properties = feature.get("properties", {})
-            
+        # The API returns a direct array of warnings, not a GeoJSON-like structure
+        warnings_list = data if isinstance(data, list) else []
+
+        for warning_data in warnings_list:
             warning = {
-                "id": properties.get("id"),
-                "type": properties.get("type"),
-                "level": properties.get("level"),
-                "onset": properties.get("onset"),
-                "expires": properties.get("expires"),
-                "headline": properties.get("headline"),
-                "description": properties.get("description"),
-                "instruction": properties.get("instruction"),
-                "regions": properties.get("regions", []),
-                "severity": properties.get("severity"),
-                "certainty": properties.get("certainty"),
-                "urgency": properties.get("urgency"),
-                "status": properties.get("status", "").lower()
+                "id": warning_data.get("id"),
+                "cap_id": warning_data.get("capId"),
+                "type": warning_data.get("type"),
+                "level": warning_data.get("level"),
+                "issued": warning_data.get("issued"),
+                "updated": warning_data.get("updated"),
+                "onset": warning_data.get("onset"),
+                "expires": warning_data.get("expiry"),  # Note: API uses "expiry" not "expires"
+                "headline": warning_data.get("headline"),
+                "description": warning_data.get("description"),
+                "instruction": warning_data.get("instruction"),
+                "regions": warning_data.get("regions", []),
+                "severity": warning_data.get("severity"),
+                "certainty": warning_data.get("certainty"),
+                "urgency": warning_data.get("urgency"),
+                "status": warning_data.get("status", "").lower()
             }
             
             # Filter warnings based on area configuration
             if self._should_include_warning(warning):
                 processed_data["warnings"].append(warning)
                 
-                # Track active warnings
-                if warning["status"] in ["actual", "active"]:
+                # Track active warnings - check for "warning" status (Met Éireann uses this)
+                if warning["status"] in ["warning", "actual", "active"]:
                     processed_data["active_warnings_count"] += 1
                     
                     # Track warning types and regions
@@ -161,37 +166,35 @@ class MetEireannDataUpdateCoordinator(DataUpdateCoordinator):
         if area_type == "whole_ireland":
             return True
             
-        warning_regions = [region.lower().strip() for region in warning.get("regions", [])]
+        warning_region_codes = warning.get("regions", [])
+        
+        # Convert region codes to county names
+        from .const import REGION_CODES
+        warning_counties = []
+        for code in warning_region_codes:
+            county = REGION_CODES.get(code)
+            if county:
+                warning_counties.append(county)
         
         if area_type == "regions":
             selected_regions = area_config.get("selected_regions", [])
             
-            # Check if any of the warning regions match selected regions
-            for region in warning_regions:
-                # Check if region matches directly
-                if region in selected_regions:
-                    return True
-                    
-                # Check if any counties from selected regions are mentioned
-                from .const import REGION_TO_COUNTIES, COUNTIES
-                for selected_region in selected_regions:
-                    region_counties = REGION_TO_COUNTIES.get(selected_region, [])
-                    for county in region_counties:
-                        county_name = COUNTIES.get(county, county).lower()
-                        if county_name in region or county in region:
-                            return True
+            # Check if any of the warning counties belong to selected regions
+            from .const import REGION_TO_COUNTIES
+            for selected_region in selected_regions:
+                region_counties = REGION_TO_COUNTIES.get(selected_region, [])
+                for warning_county in warning_counties:
+                    if warning_county in region_counties:
+                        return True
             return False
             
         elif area_type == "counties":
             selected_counties = area_config.get("selected_counties", [])
             
-            # Check if any of the warning regions match selected counties
-            for region in warning_regions:
-                for county in selected_counties:
-                    from .const import COUNTIES
-                    county_name = COUNTIES.get(county, county).lower()
-                    if county_name in region or county in region:
-                        return True
+            # Check if any warning counties match selected counties
+            for warning_county in warning_counties:
+                if warning_county in selected_counties:
+                    return True
             return False
             
         return True
