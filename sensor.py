@@ -43,7 +43,7 @@ class MetEireannWarningsCountSensor(CoordinatorEntity, SensorEntity):
         # Generate descriptive names based on area configuration
         area_suffix = self._get_area_suffix()
         self._attr_name = f"Met Éireann Active Warnings Count{area_suffix}"
-        self._attr_unique_id = f"{DOMAIN}_active_warnings_count{area_suffix.lower().replace(' ', '_')}"
+        self._attr_unique_id = f"{DOMAIN}_active_warnings_count{area_suffix.lower().replace(' ', '_').replace('(', '').replace(')', '')}"
         self._attr_icon = "mdi:weather-cloudy-alert"
         self._attr_device_class = SensorDeviceClass.ENUM
         self._attr_state_class = SensorStateClass.MEASUREMENT
@@ -82,9 +82,19 @@ class MetEireannWarningsCountSensor(CoordinatorEntity, SensorEntity):
         data = self.coordinator.data
         area_config = getattr(self.coordinator, 'area_config', {})
         
+        # Convert region codes to county names for display
+        from .const import REGION_CODES, COUNTIES
+        region_names = []
+        for code in data.get("regions_affected", []):
+            county = REGION_CODES.get(code)
+            if county:
+                county_name = COUNTIES.get(county, county)
+                region_names.append(county_name)
+        
         attributes = {
             "warning_types": data.get("warning_types", []),
-            "regions_affected": data.get("regions_affected", []),
+            "regions_affected": region_names,
+            "region_codes_affected": data.get("regions_affected", []),
             "last_updated": datetime.now().isoformat(),
             "area_type": area_config.get("area_type", "whole_ireland"),
         }
@@ -108,7 +118,7 @@ class MetEireannHighestLevelSensor(CoordinatorEntity, SensorEntity):
         # Generate descriptive names based on area configuration
         area_suffix = self._get_area_suffix()
         self._attr_name = f"Met Éireann Highest Warning Level{area_suffix}"
-        self._attr_unique_id = f"{DOMAIN}_highest_warning_level{area_suffix.lower().replace(' ', '_')}"
+        self._attr_unique_id = f"{DOMAIN}_highest_warning_level{area_suffix.lower().replace(' ', '_').replace('(', '').replace(')', '')}"
 
     def _get_area_suffix(self) -> str:
         """Get area suffix for sensor name."""
@@ -184,7 +194,7 @@ class MetEireannActiveWarningsSensor(CoordinatorEntity, SensorEntity):
         # Generate descriptive names based on area configuration
         area_suffix = self._get_area_suffix()
         self._attr_name = f"Met Éireann Active Warnings{area_suffix}"
-        self._attr_unique_id = f"{DOMAIN}_active_warnings{area_suffix.lower().replace(' ', '_')}"
+        self._attr_unique_id = f"{DOMAIN}_active_warnings{area_suffix.lower().replace(' ', '_').replace('(', '').replace(')', '')}"
         self._attr_icon = "mdi:format-list-bulleted"
 
     def _get_area_suffix(self) -> str:
@@ -227,16 +237,26 @@ class MetEireannActiveWarningsSensor(CoordinatorEntity, SensorEntity):
         warnings = self.coordinator.data.get("warnings", [])
         active_warnings = [
             warning for warning in warnings 
-            if warning.get("status", "").lower() in ["actual", "active"]
+            if warning.get("status", "").lower() in ["warning", "actual", "active"]
         ]
         
         area_config = getattr(self.coordinator, 'area_config', {})
+        
+        # Convert region codes to county names for display
+        from .const import REGION_CODES, COUNTIES
+        regions_affected = []
+        for code in self.coordinator.data.get("regions_affected", []):
+            county = REGION_CODES.get(code)
+            if county:
+                county_name = COUNTIES.get(county, county)
+                regions_affected.append(county_name)
         
         attributes = {
             "active_warnings_count": len(active_warnings),
             "total_warnings": len(warnings),
             "warning_types": self.coordinator.data.get("warning_types", []),
-            "regions_affected": self.coordinator.data.get("regions_affected", []),
+            "regions_affected": regions_affected,
+            "region_codes_affected": self.coordinator.data.get("regions_affected", []),
             "last_updated": datetime.now().isoformat(),
             "area_type": area_config.get("area_type", "whole_ireland"),
             "warnings": []
@@ -250,17 +270,31 @@ class MetEireannActiveWarningsSensor(CoordinatorEntity, SensorEntity):
         
         # Add detailed warning information
         for warning in active_warnings:
+            # Convert region codes to county names for display
+            region_names = []
+            for code in warning.get("regions", []):
+                county = REGION_CODES.get(code)
+                if county:
+                    county_name = COUNTIES.get(county, county)
+                    region_names.append(county_name)
+            
             warning_info = {
                 "id": warning.get("id"),
+                "cap_id": warning.get("cap_id"),
                 "type": warning.get("type"),
                 "level": warning.get("level"),
+                "issued": warning.get("issued"),
+                "updated": warning.get("updated"),
                 "headline": warning.get("headline"),
+                "description": warning.get("description"),
                 "onset": warning.get("onset"),
                 "expires": warning.get("expires"),
-                "regions": warning.get("regions", []),
+                "regions": region_names,  # Use converted county names
+                "region_codes": warning.get("regions", []),  # Keep original codes for reference
                 "severity": warning.get("severity"),
                 "certainty": warning.get("certainty"),
-                "urgency": warning.get("urgency")
+                "urgency": warning.get("urgency"),
+                "status": warning.get("status")
             }
             attributes["warnings"].append(warning_info)
         
