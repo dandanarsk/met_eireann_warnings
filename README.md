@@ -11,7 +11,7 @@ Creates three sensors, names are depending on the areas choosen, all_ireland or 
 
 
 Warnings auromations example:
-
+'''
 alias: "Met Éireann Weather Warning Notifications"
 description: "Send mobile notifications for active weather warnings"
 trigger:
@@ -85,3 +85,4 @@ action:
                   title: "View Details"
                 - action: "dismiss_warning"
                   title: "Dismiss"
+    '''
