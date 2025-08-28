@@ -1,7 +1,7 @@
 {
   "domain": "met_eireann_warnings",
   "name": "Met Éireann Weather Warnings",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "documentation": "https://github.com/dandanarsk/met_eireann_warnings",
   "issue_tracker": "https://github.com/dandanarsk/met_eireann_warnings/issues",
   "dependencies": [],
@@ -12,6 +12,7 @@
   "iot_class": "cloud_polling",
   "icon": "icon"
 }
+
 
 
 
