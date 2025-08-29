@@ -85,4 +85,3 @@ action:
                   title: "View Details"
                 - action: "dismiss_warning"
                   title: "Dismiss"
-    ```
