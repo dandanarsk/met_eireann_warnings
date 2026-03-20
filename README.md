@@ -8,6 +8,10 @@ Creates three sensors, names are depending on the areas choosen, all_ireland or 
    attributes: warnings details
 5. sensor.met_eireann_highest_warning_level_NAME
    state: higher warning alert colour (yelow, orange, red)
+   
+   
+Update:
+1.0.2 Add RSS feed backup as JSON is down
 
 
 Warnings automation example:
