@@ -45,7 +45,6 @@ class MetEireannWarningsCountSensor(CoordinatorEntity, SensorEntity):
         self._attr_name = f"Met Éireann Active Warnings Count{area_suffix}"
         self._attr_unique_id = f"{DOMAIN}_active_warnings_count{area_suffix.lower().replace(' ', '_').replace('(', '').replace(')', '')}"
         self._attr_icon = "mdi:weather-cloudy-alert"
-        self._attr_device_class = SensorDeviceClass.ENUM
         self._attr_state_class = SensorStateClass.MEASUREMENT
 
     def _get_area_suffix(self) -> str:
